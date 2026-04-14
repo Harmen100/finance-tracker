@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Financial Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f3;--bg3:#efefed;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9a9a96;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --green:#1D9E75;--red:#E24B4A;--blue:#3266ad;--amber:#EF9F27;--purple:#7F77DD;--pink:#D4537E;--gray:#888780;
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1e1e1c;--bg2:#2a2a28;--bg3:#323230;--text:#f0f0ec;--text2:#a0a09c;--text3:#6a6a66;--border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.22)}
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:200px;background:var(--bg);border-right:0.5px solid var(--border);padding:1.5rem 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.sidebar-logo{padding:0 1.25rem 1.25rem;font-size:15px;font-weight:500;border-bottom:0.5px solid var(--border);margin-bottom:0.75rem}
+.sidebar-logo span{font-size:11px;color:var(--text2);display:block;margin-top:2px;font-weight:400}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 1.25rem;cursor:pointer;color:var(--text2);font-size:13px;border-left:2px solid transparent}
+.nav-item:hover{background:var(--bg2);color:var(--text)}
+.nav-item.active{color:var(--blue);border-left-color:var(--blue);background:var(--bg2);font-weight:500}
+.nav-icon{font-size:14px;width:18px;text-align:center}
+.nav-section{font-size:10px;color:var(--text3);padding:12px 1.25rem 4px;text-transform:uppercase;letter-spacing:0.06em}
+.sidebar-footer{margin-top:auto;padding:1rem 1.25rem;font-size:11px;color:var(--text3);border-top:0.5px solid var(--border)}
+.fx-badge{background:var(--bg2);border-radius:var(--radius);padding:6px 10px;font-size:12px;color:var(--text2);margin-bottom:6px}
+.fx-badge strong{color:var(--text);display:block;font-size:13px}
+.main{margin-left:200px;flex:1;padding:2rem}
+.page{display:none}.page.active{display:block}
+.page-title{font-size:20px;font-weight:500;margin-bottom:1.5rem}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.5rem}
+.metric{background:var(--bg2);border-radius:var(--radius);padding:12px 14px}
+.metric-label{font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em}
+.metric-value{font-size:22px;font-weight:500}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.pos{color:var(--green)!important}.neg{color:var(--red)!important}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1rem}
+.card-title{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--text2);font-weight:400;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:12px}
+td{padding:9px 8px;border-bottom:0.5px solid var(--border);color:var(--text)}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg2)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.field label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px}
+input,select{width:100%;font-size:13px;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);outline:none}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(50,102,173,0.12)}
+.btn{padding:8px 16px;font-size:13px;cursor:pointer;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)}
+.btn:hover{background:var(--bg2)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:#2557a0}
+.btn-sm{padding:3px 10px;font-size:11px}
+.btn-danger{border-color:var(--red);color:var(--red)}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:var(--radius);font-weight:500}
+.badge-green{background:#EAF3DE;color:#3B6D11}
+.badge-red{background:#FCEBEB;color:#A32D2D}
+.badge-blue{background:#E6F1FB;color:#185FA5}
+.badge-amber{background:#FAEEDA;color:#854F0B}
+.badge-purple{background:#EEEDFE;color:#3C3489}
+.badge-gray{background:#F1EFE8;color:#5F5E5A}
+.progress-bar{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:5px}
+.progress-fill{height:100%;border-radius:3px}
+.budget-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border)}
+.budget-row:last-child{border-bottom:none}
+.empty{text-align:center;padding:2.5rem;color:var(--text2);font-size:13px}
+.alert{padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-bottom:12px}
+.alert-green{background:#EAF3DE;color:#3B6D11}
+.alert-red{background:#FCEBEB;color:#A32D2D}
+.alert-blue{background:#E6F1FB;color:#185FA5}
+.import-zone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:2rem;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;margin-bottom:1rem}
+.import-zone:hover,.import-zone.drag-over{border-color:var(--blue);background:rgba(50,102,173,0.04)}
+.import-zone input[type=file]{display:none}
+.import-icon{font-size:28px;margin-bottom:8px;color:var(--text3)}
+.import-label{font-size:13px;color:var(--text2);margin-bottom:4px}
+.import-hint{font-size:11px;color:var(--text3)}
+.import-tabs{display:flex;gap:4px;margin-bottom:1rem;flex-wrap:wrap}
+.import-tab{padding:7px 14px;font-size:12px;cursor:pointer;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text2)}
+.import-tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.preview-table-wrap{max-height:250px;overflow-y:auto;border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:1rem}
+.how-to-box{background:var(--bg2);border-radius:var(--radius);padding:12px 14px;margin-bottom:1rem;font-size:13px}
+.how-to-box ol{padding-left:1.2rem;color:var(--text2)}
+.how-to-box ol li{margin-bottom:4px}
+.how-to-box code{background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:12px;color:var(--blue)}
+@media(max-width:700px){
+  .sidebar{width:52px}
+  .sidebar-logo,.nav-label,.sidebar-footer,.nav-section,.fx-badge{display:none}
+  .nav-item{justify-content:center;padding:12px}
+  .main{margin-left:52px;padding:1rem}
+  .two-col,.form-row,.form-row-3,.form-row-4{grid-template-columns:1fr}
+  .metric-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="sidebar">
+  <div class="sidebar-logo">Finance Tracker<span>BC, Canada · Born 1998</span></div>
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">&#9632;</span><span class="nav-label">Dashboard</span></div>
+  <div class="nav-section">Money</div>
+  <div class="nav-item" onclick="showPage('investments')"><span class="nav-icon">&#9650;</span><span class="nav-label">Investments</span></div>
+  <div class="nav-item" onclick="showPage('budget')"><span class="nav-icon">&#9670;</span><span class="nav-label">Budget</span></div>
+  <div class="nav-item" onclick="showPage('registered')"><span class="nav-icon">&#9679;</span><span class="nav-label">Registered</span></div>
+  <div class="nav-section">Tools</div>
+  <div class="nav-item" onclick="showPage('import')"><span class="nav-icon">&#8593;</span><span class="nav-label">Import data</span></div>
+  <div class="nav-item" onclick="showPage('projections')"><span class="nav-icon">&#9660;</span><span class="nav-label">Projections</span></div>
+  <div class="nav-item" onclick="showPage('add')"><span class="nav-icon">+</span><span class="nav-label">Add transaction</span></div>
+  <div class="nav-item" onclick="showPage('settings')"><span class="nav-icon">&#9881;</span><span class="nav-label">Settings</span></div>
+  <div class="sidebar-footer">
+    <div class="fx-badge"><strong id="fx-rate">Loading...</strong>CAD/USD live</div>
+  </div>
+</nav>
+<main class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="page-title">Dashboard</div>
+  <div class="metric-grid">
+    <div class="metric"><div class="metric-label">Net worth</div><div class="metric-value" id="m-networth">$0</div><div class="metric-sub">CAD total</div></div>
+    <div class="metric"><div class="metric-label">Investments</div><div class="metric-value pos" id="m-inv">$0</div><div class="metric-sub">Stocks + crypto</div></div>
+    <div class="metric"><div class="metric-label">Registered</div><div class="metric-value" id="m-reg">$0</div><div class="metric-sub">TFSA + RRSP + FHSA</div></div>
+    <div class="metric"><div class="metric-label">Monthly savings</div><div class="metric-value" id="m-savings">$0</div><div class="metric-sub">Income − expenses</div></div>
+    <div class="metric"><div class="metric-label">Savings rate</div><div class="metric-value" id="m-saverate">0%</div><div class="metric-sub">Of income</div></div>
+    <div class="metric"><div class="metric-label">CAD/USD</div><div class="metric-value" id="m-fx">—</div><div class="metric-sub">Live rate</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Portfolio allocation</div>
+      <div style="position:relative;height:200px"><canvas id="allocChart" role="img" aria-label="Portfolio allocation"></canvas></div>
+      <div id="alloc-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:12px;color:var(--text2)"></div>
+    </div>
+    <div class="card"><div class="card-title">Budget this month</div><div id="budget-preview"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Net worth over time</div>
+    <div style="position:relative;height:200px"><canvas id="nwChart" role="img" aria-label="Net worth history"></canvas></div>
+  </div>
+</div>
+
+<!-- INVESTMENTS -->
+<div class="page" id="page-investments">
+  <div class="page-title">Investments</div>
+  <div class="metric-grid">
+    <div class="metric"><div class="metric-label">Market value</div><div class="metric-value" id="inv-value">$0</div></div>
+    <div class="metric"><div class="metric-label">Cost basis</div><div class="metric-value" id="inv-cost">$0</div></div>
+    <div class="metric"><div class="metric-label">Unrealized gain</div><div class="metric-value" id="inv-gain">$0</div></div>
+    <div class="metric"><div class="metric-label">Total return</div><div class="metric-value" id="inv-return">0%</div></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:0">Holdings</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="price-last-updated" style="font-size:11px;color:var(--text3)"></span>
+        <button class="btn btn-primary btn-sm" id="refresh-btn" onclick="refreshAllPrices()">&#8635; Refresh prices</button>
+      </div>
+    </div>
+    <div id="price-alert" style="margin-bottom:8px"></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Ticker</th><th>Exchange</th><th>Type</th><th>Account</th><th>Units</th><th>Avg cost</th><th>Live price</th><th>Market val (CAD)</th><th>Gain/Loss</th><th>Return</th><th></th></tr></thead>
+        <tbody id="holdings-tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="no-holdings">No holdings yet. Import from Wealthsimple or add manually.</div>
+  </div>
+</div>
+
+<!-- EDIT HOLDING MODAL -->
+<div id="edit-modal-wrap" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border);padding:1.5rem;width:420px;max-width:90vw">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <strong style="font-size:15px" id="edit-modal-title">Edit holding</strong>
+      <button class="btn btn-sm" onclick="closeEditModal()">x</button>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Ticker</label><input type="text" id="edit-ticker-display" disabled style="opacity:0.6"></div>
+      <div class="field"><label>Exchange</label>
+        <select id="edit-exchange" onchange="updateYahooPreview()">
+          <option value="TSX">TSX (Canadian .TO)</option>
+          <option value="TSX-V">TSX Venture (.V)</option>
+          <option value="NYSE">NYSE / NASDAQ (US)</option>
+          <option value="CRYPTO">Crypto (e.g. BTC-CAD)</option>
+          <option value="MANUAL">Manual — no live price</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Asset type</label>
+        <select id="edit-type"><option value="stock">Stock / ETF</option><option value="crypto">Crypto</option></select>
+      </div>
+      <div class="field"><label>Account</label>
+        <select id="edit-account"><option>TFSA</option><option>RRSP</option><option>FHSA</option><option>Non-registered</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Price override ($, optional)</label><input type="number" id="edit-price" step="any" placeholder="Leave blank = use live price"></div>
+      <div class="field"><label>Currency</label>
+        <select id="edit-currency"><option value="CAD">CAD</option><option value="USD">USD</option></select>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);background:var(--bg2);border-radius:var(--radius);padding:8px 10px;margin-bottom:12px" id="edit-yahoo-preview">Yahoo Finance symbol: —</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- BUDGET -->
+<div class="page" id="page-budget">
+  <div class="page-title">Budget</div>
+  <div class="metric-grid">
+    <div class="metric"><div class="metric-label">Monthly income</div><div class="metric-value" id="b-income">$0</div></div>
+    <div class="metric"><div class="metric-label">Budgeted</div><div class="metric-value" id="b-budgeted">$0</div></div>
+    <div class="metric"><div class="metric-label">Spent this month</div><div class="metric-value" id="b-spent">$0</div></div>
+    <div class="metric"><div class="metric-label">Surplus / deficit</div><div class="metric-value" id="b-surplus">$0</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Set income &amp; budgets</div>
+    <div class="form-row"><div class="field"><label>Monthly income (CAD)</label><input type="number" id="income-input" placeholder="e.g. 5000" oninput="saveIncome()"></div></div>
+    <div class="form-row-4" id="budget-inputs"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Spending vs budget</div>
+    <div style="position:relative;height:300px"><canvas id="budgetChart" role="img" aria-label="Budget vs spending"></canvas></div>
+  </div>
+  <div class="card"><div class="card-title">Category breakdown</div><div id="budget-breakdown"></div></div>
+</div>
+
+<!-- REGISTERED -->
+<div class="page" id="page-registered">
+  <div class="page-title">Registered accounts</div>
+  <div class="metric-grid">
+    <div class="metric"><div class="metric-label">TFSA balance</div><div class="metric-value" id="r-tfsa">$0</div></div>
+    <div class="metric"><div class="metric-label">TFSA room left</div><div class="metric-value pos" id="r-tfsaroom">$0</div></div>
+    <div class="metric"><div class="metric-label">RRSP balance</div><div class="metric-value" id="r-rrsp">$0</div></div>
+    <div class="metric"><div class="metric-label">RRSP room left</div><div class="metric-value pos" id="r-rrsproom">$0</div></div>
+    <div class="metric"><div class="metric-label">FHSA balance</div><div class="metric-value" id="r-fhsa">$0</div></div>
+    <div class="metric"><div class="metric-label">FHSA room left</div><div class="metric-value pos" id="r-fhsaroom">$0</div></div>
+    <div class="metric"><div class="metric-label">Personal banking</div><div class="metric-value" id="r-bank">$0</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Update balances</div>
+    <div class="form-row-4">
+      <div class="field"><label>TFSA ($)</label><input type="number" id="tfsa-bal" placeholder="0" oninput="updateRegistered()"></div>
+      <div class="field"><label>RRSP ($)</label><input type="number" id="rrsp-bal" placeholder="0" oninput="updateRegistered()"></div>
+      <div class="field"><label>FHSA ($)</label><input type="number" id="fhsa-bal" placeholder="0" oninput="updateRegistered()"></div>
+      <div class="field"><label>Banking ($)</label><input type="number" id="bank-bal" placeholder="0" oninput="updateRegistered()"></div>
+      <div class="field"><label>RRSP room ($)</label><input type="number" id="rrsp-room" placeholder="0" oninput="updateRegistered()"></div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">TFSA room — eligible from 2016</div>
+      <table><thead><tr><th>Year</th><th>Annual limit</th><th>Cumulative</th></tr></thead><tbody id="tfsa-table"></tbody></table>
+      <div style="margin-top:12px;font-size:12px;color:var(--text2)">Lifetime (2016–2026): <strong id="tfsa-lifetime">$95,000</strong> | Used: <strong id="tfsa-used">$0</strong> | Remaining: <strong id="tfsa-remaining" class="pos">$95,000</strong></div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">FHSA</div>
+        <table>
+          <tr><td style="color:var(--text2)">Annual limit</td><td>$8,000</td></tr>
+          <tr><td style="color:var(--text2)">Lifetime limit</td><td>$40,000</td></tr>
+          <tr><td style="color:var(--text2)">Balance</td><td id="fhsa-summary">$0</td></tr>
+          <tr><td style="color:var(--text2)">Room left</td><td id="fhsa-room-summary" class="pos">$40,000</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">BC combined marginal tax (2025)</div>
+        <table>
+          <thead><tr><th>Bracket</th><th>Federal</th><th>BC</th><th>Combined</th></tr></thead>
+          <tbody>
+            <tr><td>$0–$55,867</td><td>15%</td><td>5.06%</td><td>20.06%</td></tr>
+            <tr><td>$55k–$89k</td><td>20.5%</td><td>7.7%</td><td>28.2%</td></tr>
+            <tr><td>$89k–$112k</td><td>26%</td><td>10.5%</td><td>36.5%</td></tr>
+            <tr><td>$112k–$155k</td><td>29%</td><td>12.29%</td><td>41.29%</td></tr>
+            <tr><td>$155k+</td><td>33%</td><td>14.7%</td><td>47.7%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT -->
+<div class="page" id="page-import">
+  <div class="page-title">Import data</div>
+  <div class="import-tabs">
+    <div class="import-tab active" onclick="switchImportTab('cibc')">CIBC Chequing / Savings</div>
+    <div class="import-tab" onclick="switchImportTab('ws-invest')">Wealthsimple Invest</div>
+    <div class="import-tab" onclick="switchImportTab('ws-cash')">Wealthsimple Cash / Crypto</div>
+  </div>
+
+  <!-- CIBC tab -->
+  <div id="import-cibc">
+    <div class="how-to-box">
+      <strong style="font-size:13px;color:var(--text);display:block;margin-bottom:8px">How to export from CIBC</strong>
+      <ol>
+        <li>Log in at <strong>cibc.com</strong> and go to Online Banking</li>
+        <li>Click <code>More</code> in the top nav, then <code>Download Transactions</code></li>
+        <li>Select your chequing or savings account and the date range</li>
+        <li>Choose <code>CSV</code> format and download the file</li>
+        <li>Drop the file below</li>
+      </ol>
+      <div style="margin-top:8px;font-size:12px;color:var(--text3)">Handles CIBC layouts with separate Debit/Credit columns or a single signed Amount column. Categories are auto-detected from descriptions.</div>
+    </div>
+    <div class="card">
+      <div id="cibc-alert"></div>
+      <label class="import-zone" id="cibc-drop" ondragover="dragOver(event,'cibc-drop')" ondragleave="dragLeave('cibc-drop')" ondrop="dropFile(event,'cibc')" onclick="document.getElementById('cibc-file').click()">
+        <input type="file" id="cibc-file" accept=".csv" onchange="handleFile(event,'cibc')">
+        <div class="import-icon">&#8679;</div>
+        <div class="import-label">Drop CIBC CSV here or click to browse</div>
+        <div class="import-hint">.csv files only</div>
+      </label>
+      <div id="cibc-preview" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong style="font-size:13px" id="cibc-preview-title">Preview</strong>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="clearImport('cibc')">Clear</button>
+            <button class="btn btn-primary btn-sm" onclick="confirmImport('cibc')">Import all</button>
+          </div>
+        </div>
+        <div class="preview-table-wrap"><table id="cibc-preview-table"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WS Invest tab -->
+  <div id="import-ws-invest" style="display:none">
+    <div class="how-to-box">
+      <strong style="font-size:13px;color:var(--text);display:block;margin-bottom:8px">How to export from Wealthsimple (TFSA / RRSP / FHSA / Invest)</strong>
+      <ol>
+        <li>Log in at <strong>my.wealthsimple.com</strong></li>
+        <li>Click your investment account (TFSA, RRSP, or FHSA)</li>
+        <li>Go to <code>Activity</code> and click <code>Download</code> or <code>Export CSV</code></li>
+        <li>Alternatively: <code>Profile</code> &rarr; <code>Documents</code> &rarr; <code>Transaction History</code> CSV</li>
+        <li>Select the account type below, then drop the file</li>
+      </ol>
+      <div style="margin-top:8px;font-size:12px;color:var(--text3)">Detects Buy, Sell, and Dividend rows. Holdings are updated automatically from buy/sell trades.</div>
+    </div>
+    <div class="card">
+      <div id="ws-invest-alert"></div>
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="field"><label>Account type</label>
+          <select id="ws-invest-account"><option value="TFSA">TFSA</option><option value="RRSP">RRSP</option><option value="FHSA">FHSA</option><option value="Non-registered">Non-registered</option></select>
+        </div>
+      </div>
+      <label class="import-zone" id="ws-invest-drop" ondragover="dragOver(event,'ws-invest-drop')" ondragleave="dragLeave('ws-invest-drop')" ondrop="dropFile(event,'ws-invest')" onclick="document.getElementById('ws-invest-file').click()">
+        <input type="file" id="ws-invest-file" accept=".csv" onchange="handleFile(event,'ws-invest')">
+        <div class="import-icon">&#8679;</div>
+        <div class="import-label">Drop Wealthsimple investment CSV here or click to browse</div>
+        <div class="import-hint">.csv files only</div>
+      </label>
+      <div id="ws-invest-preview" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong style="font-size:13px" id="ws-invest-preview-title">Preview</strong>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="clearImport('ws-invest')">Clear</button>
+            <button class="btn btn-primary btn-sm" onclick="confirmImport('ws-invest')">Import all</button>
+          </div>
+        </div>
+        <div class="preview-table-wrap"><table id="ws-invest-preview-table"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WS Cash tab -->
+  <div id="import-ws-cash" style="display:none">
+    <div class="how-to-box">
+      <strong style="font-size:13px;color:var(--text);display:block;margin-bottom:8px">How to export from Wealthsimple Cash / Crypto</strong>
+      <ol>
+        <li>Log in at <strong>my.wealthsimple.com</strong></li>
+        <li>Open your <strong>Cash</strong> or <strong>Crypto</strong> account</li>
+        <li>Click <code>Activity</code> &rarr; <code>View all transactions</code></li>
+        <li>Click <code>Download</code> or <code>Export</code> — if not visible, use the free <a href="https://greasyfork.org/en/scripts/500403-wealthsimple-export-transactions-as-csv" target="_blank" style="color:var(--blue)">Wealthsimple CSV exporter</a> browser script</li>
+        <li>Select account type below, then drop the file</li>
+      </ol>
+      <div style="margin-top:8px;font-size:12px;color:var(--text3)">Positive amounts = income/deposits. Negative amounts = expenses/withdrawals. Categories are auto-detected.</div>
+    </div>
+    <div class="card">
+      <div id="ws-cash-alert"></div>
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="field"><label>Account type</label>
+          <select id="ws-cash-account"><option value="Cash">Cash account</option><option value="Crypto">Crypto</option></select>
+        </div>
+      </div>
+      <label class="import-zone" id="ws-cash-drop" ondragover="dragOver(event,'ws-cash-drop')" ondragleave="dragLeave('ws-cash-drop')" ondrop="dropFile(event,'ws-cash')" onclick="document.getElementById('ws-cash-file').click()">
+        <input type="file" id="ws-cash-file" accept=".csv" onchange="handleFile(event,'ws-cash')">
+        <div class="import-icon">&#8679;</div>
+        <div class="import-label">Drop Wealthsimple cash/crypto CSV here or click to browse</div>
+        <div class="import-hint">.csv files only</div>
+      </label>
+      <div id="ws-cash-preview" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong style="font-size:13px" id="ws-cash-preview-title">Preview</strong>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="clearImport('ws-cash')">Clear</button>
+            <button class="btn btn-primary btn-sm" onclick="confirmImport('ws-cash')">Import all</button>
+          </div>
+        </div>
+        <div class="preview-table-wrap"><table id="ws-cash-preview-table"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Import history</div>
+    <table>
+      <thead><tr><th>Date</th><th>Source</th><th>Account</th><th>Rows imported</th><th>Status</th></tr></thead>
+      <tbody id="import-history-tbody"></tbody>
+    </table>
+    <div class="empty" id="no-import-history">No imports yet.</div>
+  </div>
+</div>
+
+<!-- PROJECTIONS -->
+<div class="page" id="page-projections">
+  <div class="page-title">Projections</div>
+  <div class="card">
+    <div class="card-title">Retirement — age 27 to 65 (38 years)</div>
+    <div class="form-row">
+      <div class="field"><label>Monthly contribution ($)</label><input type="number" id="proj-contrib" value="500" oninput="renderProjections()"></div>
+      <div class="field"><label>Current invested assets ($)</label><input type="number" id="proj-current" value="0" oninput="renderProjections()"></div>
+    </div>
+    <div class="metric-grid" style="margin-bottom:1rem">
+      <div class="metric"><div class="metric-label">Conservative (4%)</div><div class="metric-value" id="proj-cons">$0</div><div class="metric-sub">at age 65</div></div>
+      <div class="metric"><div class="metric-label">Moderate (7%)</div><div class="metric-value pos" id="proj-mod">$0</div><div class="metric-sub">at age 65</div></div>
+      <div class="metric"><div class="metric-label">Aggressive (10%)</div><div class="metric-value" id="proj-agg">$0</div><div class="metric-sub">at age 65</div></div>
+    </div>
+    <div style="position:relative;height:280px"><canvas id="projChart" role="img" aria-label="Retirement projections"></canvas></div>
+    <div id="proj-legend" style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:12px;color:var(--text2)"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">12-month net worth forecast</div>
+    <div style="position:relative;height:220px"><canvas id="forecastChart" role="img" aria-label="12 month forecast"></canvas></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="page-title">Settings</div>
+  <div class="card">
+    <div class="card-title">API key — live price fetching</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">
+      One API key covers your entire portfolio — TSX, NASDAQ, NYSE, and crypto ETFs — in a single bulk request. Your key is saved locally in your browser and never sent anywhere except FMP's servers.
+    </div>
+    <div style="background:var(--bg2);border-radius:var(--radius-lg);padding:1rem;margin-bottom:1rem">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-weight:500;font-size:13px">Financial Modeling Prep (FMP)</span>
+        <span class="badge badge-blue">TSX</span>
+        <span class="badge badge-green">NYSE / NASDAQ</span>
+        <span class="badge badge-amber">Crypto</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">
+        Free tier: <strong>250 requests/day</strong>. All your holdings are fetched in a <strong>single bulk request</strong> — so 1 refresh = 1 request, regardless of how many holdings you have. Scales to any portfolio size.
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">
+        Get your free key at <a href="https://site.financialmodelingprep.com/developer/docs/pricing" target="_blank" style="color:var(--blue)">financialmodelingprep.com</a> — sign up with email, no credit card required.
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <div class="field"><label>FMP API key</label><input type="text" id="fmp-key" placeholder="e.g. abc123def456..." oninput="saveApiKeys()"></div>
+        <div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary" onclick="testFmpKey()" style="width:100%">Test key</button></div>
+      </div>
+    </div>
+    <div id="api-key-status" style="font-size:12px"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">How price fetching works</div>
+    <table>
+      <thead><tr><th>Exchange</th><th>Symbol format sent to FMP</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>TSX</td><td>TICKER.TO</td><td>CNQ.TO, AII.TO, XEQT.TO</td></tr>
+        <tr><td>TSX Venture</td><td>TICKER.V</td><td>—</td></tr>
+        <tr><td>NYSE / NASDAQ</td><td>TICKER</td><td>LULU, AXSM</td></tr>
+        <tr><td>Crypto ETF (TSX)</td><td>TICKER.TO</td><td>BTCX-B.TO, ETHX-B.TO</td></tr>
+        <tr><td>Crypto (direct)</td><td>TICKERUSD</td><td>BTCUSD, ETHUSD</td></tr>
+        <tr><td>Manual</td><td>—</td><td>Set price override in Edit</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:10px;font-size:12px;color:var(--text3)">All tickers are sent in one batch request. FMP returns prices for all of them at once, so refresh speed does not depend on portfolio size. Prices are delayed ~15 min during market hours on the free tier.</div>
+  </div>
+</div>
+
+<!-- ADD -->
+<div class="page" id="page-add">
+  <div class="page-title">Add transaction</div>
+  <div class="card">
+    <div id="add-alert"></div>
+    <div class="form-row">
+      <div class="field"><label>Type</label>
+        <select id="add-type" onchange="toggleAddFields()">
+          <option value="investment">Investment (buy / sell)</option>
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
+      </div>
+      <div class="field"><label>Date</label><input type="date" id="add-date"></div>
+    </div>
+    <div id="inv-fields">
+      <div class="form-row-4">
+        <div class="field"><label>Ticker</label><input type="text" id="add-ticker" placeholder="e.g. VFV.TO, BTC"></div>
+        <div class="field"><label>Class</label><select id="add-assetclass"><option value="stock">Stock / ETF</option><option value="crypto">Crypto</option></select></div>
+        <div class="field"><label>Account</label><select id="add-account"><option>TFSA</option><option>RRSP</option><option>FHSA</option><option>Non-registered</option></select></div>
+        <div class="field"><label>Currency</label><select id="add-currency"><option>CAD</option><option>USD</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Action</label><select id="add-action"><option value="buy">Buy</option><option value="sell">Sell</option></select></div>
+        <div class="field"><label>Units</label><input type="number" id="add-shares" step="any" placeholder="0"></div>
+      </div>
+      <div class="form-row"><div class="field"><label>Price per unit</label><input type="number" id="add-price" step="any" placeholder="0.00"></div></div>
+    </div>
+    <div id="exp-fields" style="display:none">
+      <div class="form-row">
+        <div class="field"><label>Amount ($)</label><input type="number" id="add-amount" step="any"></div>
+        <div class="field"><label>Category</label><select id="add-category"><option>Housing / Rent</option><option>Groceries</option><option>Dining &amp; Entertainment</option><option>Transport</option><option>Subscriptions</option><option>Shopping</option><option>Healthcare</option><option>Savings / Investments</option></select></div>
+      </div>
+      <div class="form-row"><div class="field"><label>Description</label><input type="text" id="add-desc" placeholder="e.g. Netflix, grocery run"></div></div>
+    </div>
+    <div id="inc-fields" style="display:none">
+      <div class="form-row">
+        <div class="field"><label>Amount ($)</label><input type="number" id="add-inc-amount" step="any"></div>
+        <div class="field"><label>Source</label><input type="text" id="add-inc-source" placeholder="e.g. Salary"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:1rem">
+      <button class="btn btn-primary" onclick="addTransaction()">Save</button>
+      <button class="btn" onclick="showPage('dashboard')">Cancel</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Transaction history</div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Source</th><th>Details</th><th>Amount</th><th></th></tr></thead>
+        <tbody id="tx-tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="no-tx">No transactions yet.</div>
+  </div>
+</div>
+
+</main>
+</div>
+<script>
+const TFSA_LIMITS={2016:5500,2017:5500,2018:5500,2019:6000,2020:6000,2021:6000,2022:6000,2023:6500,2024:7000,2025:7000,2026:7000};
+const CATS=['Housing / Rent','Groceries','Dining & Entertainment','Transport','Subscriptions','Shopping','Healthcare','Savings / Investments'];
+const CAT_COLORS=['#3266ad','#1D9E75','#E24B4A','#EF9F27','#7F77DD','#D4537E','#378ADD','#639922'];
+
+let S={transactions:[],holdings:{},budget:{},income:0,registered:{tfsa:0,rrsp:0,fhsa:0,bank:0,rrspRoom:0},fxRate:1.36,importHistory:[]};
+try{const d=localStorage.getItem('ft4');if(d)S={...S,...JSON.parse(d)};}catch(e){}
+function save(){try{localStorage.setItem('ft4',JSON.stringify(S));}catch(e){}}
+
+let charts={};
+let staged={cibc:null,'ws-invest':null,'ws-cash':null};
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const pages=['dashboard','investments','budget','registered','import','projections','add','settings'];
+  document.querySelectorAll('.nav-item')[pages.indexOf(p)]?.classList.add('active');
+  ({dashboard:renderDashboard,investments:renderInvestments,budget:renderBudget,registered:renderRegistered,import:renderImportHistory,projections:renderProjections,add:renderTxHistory,settings:renderSettings}[p]?.());
+}
+
+const toCAD=(n,c)=>c==='USD'?n*(S.fxRate||1.36):n;
+const fmt=n=>'$'+(Math.abs(n)||0).toLocaleString('en-CA',{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtD=n=>'$'+(Math.abs(n)||0).toLocaleString('en-CA',{minimumFractionDigits:2,maximumFractionDigits:2});
+const sign=n=>n>=0?'':'-';
+
+async function fetchFX(){
+  try{
+    const r=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+    const d=await r.json();S.fxRate=d.usd.cad;
+    document.getElementById('fx-rate').textContent='1 USD = '+S.fxRate.toFixed(4)+' CAD';
+    document.getElementById('m-fx').textContent=S.fxRate.toFixed(4);save();
+  }catch(e){S.fxRate=1.36;document.getElementById('fx-rate').textContent='~1.36';document.getElementById('m-fx').textContent='~1.36';}
+  renderDashboard();
+}
+
+/* CSV parser */
+function parseCSV(text){
+  const lines=text.trim().split(/\r?\n/);
+  const hraw=lines[0];
+  const headers=splitCSVLine(hraw).map(h=>h.replace(/^"|"$/g,'').trim());
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    if(!lines[i].trim())continue;
+    const vals=splitCSVLine(lines[i]);
+    const obj={};headers.forEach((h,j)=>obj[h]=(vals[j]||'').replace(/^"|"$/g,'').trim());
+    rows.push(obj);
+  }
+  return{headers,rows};
+}
+function splitCSVLine(line){
+  const r=[];let cur='',inQ=false;
+  for(let i=0;i<=line.length;i++){
+    const ch=i<line.length?line[i]:',';
+    if(ch==='"'){inQ=!inQ;}
+    else if(ch===','&&!inQ){r.push(cur);cur='';}
+    else cur+=ch;
+  }
+  return r;
+}
+function findCol(obj,candidates){
+  for(const c of candidates){const k=Object.keys(obj).find(k=>k.toLowerCase().replace(/\s/g,'').includes(c.toLowerCase().replace(/\s/g,'')));if(k)return k;}
+  return null;
+}
+function cleanNum(s){return parseFloat((s||'0').replace(/[$,\s\u00a0]/g,'').replace(/[^\d.\-]/g,''))||0;}
+function normalizeDate(d){
+  if(!d)return new Date().toISOString().split('T')[0];
+  d=d.replace(/"/g,'').trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(d))return d.substring(0,10);
+  if(/^\d{2}\/\d{2}\/\d{4}/.test(d)){const[m,day,y]=d.split('/');return`${y}-${m.padStart(2,'0')}-${day.padStart(2,'0')}`;}
+  if(/^\d{4}\/\d{2}\/\d{2}/.test(d))return d.replace(/\//g,'-');
+  if(/^\d{2}-\w{3}-\d{4}/.test(d)){try{return new Date(d).toISOString().split('T')[0];}catch(e){}}
+  try{const dt=new Date(d);if(!isNaN(dt))return dt.toISOString().split('T')[0];}catch(e){}
+  return new Date().toISOString().split('T')[0];
+}
+function guessCategory(desc){
+  const d=(desc||'').toLowerCase();
+  if(/rent|mortgage|strata|hydro|bc hydro|fortis|telus|shaw|rogers|bell/.test(d))return 'Housing / Rent';
+  if(/grocery|superstore|save-on|safeway|loblaws|freshco|metro|t&t|whole foods|produce/.test(d))return 'Groceries';
+  if(/restaurant|cafe|coffee|tim horton|starbuck|mcdonalds|subway|uber eats|doordash|skip|sushi|pizza|burger|a&w/.test(d))return 'Dining & Entertainment';
+  if(/translink|compass|bus|skytrain|taxi|uber|lyft|esso|petro|shell|chevron|parking|car/.test(d))return 'Transport';
+  if(/netflix|spotify|amazon prime|apple|google|disney|youtube|hulu|subscription|paramount/.test(d))return 'Subscriptions';
+  if(/amazon|walmart|costco|canadian tire|home depot|hudson|shopping|purchase|sport chek/.test(d))return 'Shopping';
+  if(/pharmacy|shoppers|rexall|doctor|medical|dental|health|clinic|optom/.test(d))return 'Healthcare';
+  if(/transfer|invest|wealthsimple|rrsp|tfsa|fhsa|savings|contribution/.test(d))return 'Savings / Investments';
+  return 'Shopping';
+}
+
+/* CIBC parser */
+function parseCIBC(text){
+  const{rows}=parseCSV(text);
+  return rows.map(r=>{
+    const dateKey=findCol(r,['date']);
+    const descKey=findCol(r,['description','desc','memo','payee','narration']);
+    const debitKey=findCol(r,['debit','withdrawal','out']);
+    const creditKey=findCol(r,['credit','deposit','in']);
+    const amtKey=findCol(r,['amount']);
+    if(!dateKey)return null;
+    const date=normalizeDate(r[dateKey]);
+    const desc=(descKey?r[descKey]:'')||'';
+    let debit=0,credit=0;
+    if(debitKey&&creditKey){debit=Math.abs(cleanNum(r[debitKey]));credit=Math.abs(cleanNum(r[creditKey]));}
+    else if(amtKey){const v=cleanNum(r[amtKey]);if(v<0)debit=Math.abs(v);else credit=v;}
+    return{date,desc,debit,credit};
+  }).filter(Boolean).filter(r=>r.desc||r.debit||r.credit);
+}
+
+/* Wealthsimple invest parser — matches real export format:
+   transaction_date, settlement_date, account_id, account_type,
+   activity_type, activity_sub_type, direction, symbol, name,
+   currency, quantity, unit_price, commission, net_cash_amount
+*/
+function parseWSInvest(text){
+  // Strip trailing footer line e.g. "As of 2026-04-12..."
+  const cleaned=text.split(/\r?\n/).filter(l=>!/^"?As of /i.test(l.trim())).join('\n');
+  const{rows}=parseCSV(cleaned);
+  return rows.map(r=>{
+    // Support both real WS column names and generic fallbacks
+    const date=normalizeDate(
+      r['transaction_date']||r['Transaction Date']||
+      r[findCol(r,['date','trade date'])]||''
+    );
+    const actType=(r['activity_type']||r['Activity Type']||'').trim().toUpperCase();
+    const subType=(r['activity_sub_type']||r['activity_subtype']||r['Activity Sub Type']||
+      r[findCol(r,['type','activity','action'])]||'').trim().toUpperCase();
+    const symbol=(r['symbol']||r['Symbol']||r['ticker']||'').trim().toUpperCase();
+    const name=(r['name']||r['Name']||'').trim();
+    const currency=r['currency']||r['Currency']||'CAD';
+    const qty=parseFloat(r['quantity']||r['Quantity']||0)||0; // negative for sells
+    const price=Math.abs(parseFloat(r['unit_price']||r['Unit Price']||r['price']||0)||0);
+    const amount=parseFloat(r['net_cash_amount']||r['Net Cash Amount']||r['amount']||0)||0;
+
+    const isTrade=actType==='TRADE';
+    const isBuy=isTrade&&(subType==='BUY'||subType==='PURCHASE'||qty>0);
+    const isSell=isTrade&&(subType==='SELL'||qty<0);
+    const isDividend=/DIVIDEND|DIV/.test(actType);
+    const isInterest=/INTEREST/.test(actType);
+    const isDeposit=/MONEYMOVEMENT|DEPOSIT/.test(actType);
+
+    return{date,actType,subType,symbol,name,currency,qty:Math.abs(qty),price,amount,isBuy,isSell,isDividend,isInterest,isDeposit};
+  }).filter(r=>r.date);
+}
+
+/* Wealthsimple cash parser */
+function parseWSCash(text){
+  const{rows}=parseCSV(text);
+  return rows.map(r=>{
+    const dateKey=findCol(r,['date']);
+    const payeeKey=findCol(r,['payee','description','memo','merchant','name']);
+    const amtKey=findCol(r,['amount','net']);
+    if(!dateKey)return null;
+    const date=normalizeDate(r[dateKey]);
+    const payee=(payeeKey?r[payeeKey]:'')?.trim()||'Transaction';
+    const amount=cleanNum(amtKey?r[amtKey]:'0');
+    return{date,payee,amount};
+  }).filter(Boolean);
+}
+
+/* Drag/drop */
+function dragOver(e,id){e.preventDefault();document.getElementById(id).classList.add('drag-over');}
+function dragLeave(id){document.getElementById(id).classList.remove('drag-over');}
+function dropFile(e,type){e.preventDefault();const z=type+'-drop';dragLeave(z);const f=e.dataTransfer.files[0];if(f)readFile(f,type);}
+function handleFile(e,type){const f=e.target.files[0];if(f)readFile(f,type);}
+function readFile(f,type){const r=new FileReader();r.onload=e=>processCSV(e.target.result,type);r.readAsText(f);}
+
+function processCSV(text,type){
+  try{
+    let parsed,prevRows,headers,title;
+    if(type==='cibc'){
+      parsed=parseCIBC(text);staged.cibc=parsed;
+      headers=['Date','Description','Debit','Credit','Auto-category'];
+      prevRows=parsed.slice(0,8).map(r=>[r.date,r.desc,r.debit?fmtD(r.debit):'',r.credit?fmtD(r.credit):'',guessCategory(r.desc)]);
+      title=`${parsed.length} transactions found`;
+    } else if(type==='ws-invest'){
+      parsed=parseWSInvest(text);staged['ws-invest']=parsed;
+      headers=['Date','Symbol','Name','Action','Qty','Price','Amount'];
+      prevRows=parsed.slice(0,8).map(r=>[
+        r.date,
+        r.symbol||'—',
+        (r.name||'').substring(0,22)+(r.name&&r.name.length>22?'…':''),
+        r.isBuy?'BUY':r.isSell?'SELL':r.isDividend?'DIV':r.isInterest?'INT':r.isDeposit?'DEPOSIT':r.actType,
+        r.qty?r.qty.toFixed(4):'—',
+        r.price?fmtD(r.price):'—',
+        fmtD(Math.abs(r.amount))
+      ]);
+      title=`${parsed.length} rows found — ${parsed.filter(r=>r.isBuy).length} buys, ${parsed.filter(r=>r.isSell).length} sells, ${parsed.filter(r=>r.isDividend||r.isInterest).length} dividends/interest`;
+    } else {
+      parsed=parseWSCash(text);
+      parsed._rawText=text; // store for crypto re-parse
+      staged['ws-cash']=parsed;
+      headers=['Date','Payee','Amount','Auto-category'];
+      prevRows=parsed.slice(0,8).map(r=>[r.date,r.payee,(r.amount>=0?'+':'')+fmtD(r.amount),guessCategory(r.payee)]);
+      title=`${parsed.length} transactions found`;
+    }
+    renderPreview(type,headers,prevRows,title);
+    setAlert(type,'','');
+  }catch(err){setAlert(type,'Could not parse file: '+err.message,'red');}
+}
+
+function renderPreview(type,headers,rows,title){
+  const el=document.getElementById(type+'-preview');
+  document.getElementById(type+'-preview-title').textContent=title;
+  const t=document.getElementById(type+'-preview-table');
+  t.querySelector('thead').innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>';
+  t.querySelector('tbody').innerHTML=rows.map(r=>'<tr>'+r.map(c=>`<td>${c||''}</td>`).join('')+'</tr>').join('');
+  el.style.display='';
+}
+
+function clearImport(type){
+  staged[type]=null;
+  document.getElementById(type+'-preview').style.display='none';
+  const fi={cibc:'cibc-file','ws-invest':'ws-invest-file','ws-cash':'ws-cash-file'}[type];
+  document.getElementById(fi).value='';
+}
+
+function confirmImport(type){
+  const data=staged[type];
+  if(!data||!data.length)return;
+  let count=0;
+
+  if(type==='cibc'){
+    for(const r of data){
+      if(r.credit>0){S.transactions.push({type:'income',date:r.date,amount:r.credit,source:'CIBC: '+r.desc,importSource:'CIBC'});count++;}
+      if(r.debit>0){S.transactions.push({type:'expense',date:r.date,amount:r.debit,category:guessCategory(r.desc),desc:r.desc,importSource:'CIBC'});count++;}
+    }
+  } else if(type==='ws-invest'){
+    const account=document.getElementById('ws-invest-account').value;
+    for(const r of data){
+      if((r.isBuy||r.isSell)&&r.qty>0&&r.symbol){
+        const action=r.isBuy?'buy':'sell';
+        const price=r.price||(r.qty?Math.abs(r.amount)/r.qty:0);
+        if(price>0){
+          if(action==='buy'){
+            if(S.holdings[r.symbol]){
+              const h=S.holdings[r.symbol];
+              const tc=h.shares*h.costBasis+r.qty*price;
+              const ts=h.shares+r.qty;
+              h.costBasis=tc/ts;h.shares=parseFloat(ts.toFixed(8));h.currentPrice=price;
+              if(r.name)h.name=r.name;
+            } else {
+              S.holdings[r.symbol]={ticker:r.symbol,name:r.name||r.symbol,shares:r.qty,costBasis:price,currentPrice:price,currency:r.currency||'CAD',type:'stock',account};
+            }
+          } else if(S.holdings[r.symbol]){
+            S.holdings[r.symbol].shares=parseFloat(Math.max(0,S.holdings[r.symbol].shares-r.qty).toFixed(8));
+            if(S.holdings[r.symbol].shares<0.0001)delete S.holdings[r.symbol];
+          }
+          S.transactions.push({type:'investment',date:r.date,ticker:r.symbol,name:r.name,shares:r.qty,price,currency:r.currency||'CAD',action,assetType:'stock',account,importSource:'Wealthsimple'});
+          count++;
+        }
+      } else if((r.isDividend||r.isInterest)&&r.amount){
+        const label=r.isDividend?'Dividend':'Interest';
+        S.transactions.push({type:'income',date:r.date,amount:Math.abs(r.amount),source:`${label} — ${account}`,importSource:'Wealthsimple'});
+        count++;
+      } else if(r.isDeposit&&r.amount>0){
+        S.transactions.push({type:'income',date:r.date,amount:r.amount,source:`Deposit — ${account}`,importSource:'Wealthsimple'});
+        count++;
+      }
+    }
+  } else {
+    const account=document.getElementById('ws-cash-account').value;
+    const isCrypto=account==='Crypto';
+
+    if(isCrypto){
+      // Wealthsimple Crypto exports use the same format as invest CSV
+      // Re-parse with the invest parser to get buy/sell/holdings properly
+      const cryptoParsed=parseWSInvest(staged['ws-cash']._rawText||'');
+      if(cryptoParsed.length){
+        for(const r of cryptoParsed){
+          if((r.isBuy||r.isSell)&&r.qty>0&&r.symbol){
+            const action=r.isBuy?'buy':'sell';
+            const price=r.price||(r.qty?Math.abs(r.amount)/r.qty:0);
+            if(price>0){
+              if(action==='buy'){
+                if(S.holdings[r.symbol]){
+                  const h=S.holdings[r.symbol];
+                  const tc=h.shares*h.costBasis+r.qty*price;
+                  const ts=h.shares+r.qty;
+                  h.costBasis=tc/ts;h.shares=parseFloat(ts.toFixed(8));h.currentPrice=price;
+                } else {
+                  S.holdings[r.symbol]={ticker:r.symbol,name:r.name||r.symbol,shares:r.qty,costBasis:price,currentPrice:price,currency:r.currency||'CAD',type:'crypto',account:'Crypto'};
+                }
+              } else if(S.holdings[r.symbol]){
+                S.holdings[r.symbol].shares=parseFloat(Math.max(0,S.holdings[r.symbol].shares-r.qty).toFixed(8));
+                if(S.holdings[r.symbol].shares<0.0001)delete S.holdings[r.symbol];
+              }
+              S.transactions.push({type:'investment',date:r.date,ticker:r.symbol,name:r.name,shares:r.qty,price,currency:r.currency||'CAD',action,assetType:'crypto',account:'Crypto',importSource:'Wealthsimple'});
+              count++;
+            }
+          } else if((r.isDividend||r.isInterest||r.isDeposit)&&r.amount){
+            S.transactions.push({type:'income',date:r.date,amount:Math.abs(r.amount),source:`Crypto — ${r.actType}`,importSource:'Wealthsimple'});
+            count++;
+          }
+        }
+      } else {
+        // Fallback: plain Date/Payee/Amount format — log as transactions only
+        for(const r of data){
+          if(r.amount>0){S.transactions.push({type:'income',date:r.date,amount:r.amount,source:`WS Crypto: ${r.payee}`,importSource:'Wealthsimple'});count++;}
+          else if(r.amount<0){S.transactions.push({type:'expense',date:r.date,amount:Math.abs(r.amount),category:'Savings / Investments',desc:r.payee,importSource:'Wealthsimple'});count++;}
+        }
+      }
+    } else {
+      // Plain cash account — income/expense only
+      for(const r of data){
+        if(r.amount>0){S.transactions.push({type:'income',date:r.date,amount:r.amount,source:`WS Cash: ${r.payee}`,importSource:'Wealthsimple'});count++;}
+        else if(r.amount<0){S.transactions.push({type:'expense',date:r.date,amount:Math.abs(r.amount),category:guessCategory(r.payee),desc:r.payee,importSource:'Wealthsimple'});count++;}
+      }
+    }
+  }
+
+  const accountLabel=type==='cibc'?'CIBC Chequing':type==='ws-invest'?document.getElementById('ws-invest-account').value:document.getElementById('ws-cash-account').value;
+  S.importHistory.push({date:new Date().toISOString().split('T')[0],source:type==='cibc'?'CIBC':'Wealthsimple',account:accountLabel,rows:count,status:'success'});
+  save();
+  setAlert(type,`Imported ${count} transactions successfully.`,'green');
+  clearImport(type);
+  renderImportHistory();
+}
+
+function setAlert(type,msg,color){
+  const el=document.getElementById(type+'-alert');
+  if(!msg){el.innerHTML='';return;}
+  el.innerHTML=`<div class="alert alert-${color==='green'?'green':color==='red'?'red':'blue'}">${msg}</div>`;
+  if(color==='green')setTimeout(()=>{el.innerHTML='';},4000);
+}
+
+function switchImportTab(tab){
+  ['cibc','ws-invest','ws-cash'].forEach(t=>document.getElementById('import-'+t).style.display=t===tab?'':'none');
+  document.querySelectorAll('.import-tab').forEach((el,i)=>el.classList.toggle('active',['cibc','ws-invest','ws-cash'][i]===tab));
+}
+
+function renderImportHistory(){
+  const tbody=document.getElementById('import-history-tbody');
+  document.getElementById('no-import-history').style.display=S.importHistory.length?'none':'';
+  tbody.innerHTML=[...S.importHistory].reverse().map(h=>`<tr>
+    <td>${h.date}</td>
+    <td><span class="badge ${h.source==='CIBC'?'badge-blue':'badge-green'}">${h.source}</span></td>
+    <td>${h.account}</td><td>${h.rows}</td>
+    <td><span class="badge badge-green">${h.status}</span></td>
+  </tr>`).join('');
+}
+
+/* Dashboard */
+function calcNW(){const inv=Object.values(S.holdings).reduce((a,h)=>a+toCAD(h.shares*h.currentPrice,h.currency),0);const reg=(S.registered.tfsa||0)+(S.registered.rrsp||0)+(S.registered.fhsa||0)+(S.registered.bank||0);return{inv,reg,total:inv+reg};}
+function calcSpending(){const now=new Date();const m=now.getMonth(),y=now.getFullYear();const t={};CATS.forEach(c=>t[c]=0);S.transactions.filter(tx=>{if(tx.type!=='expense')return false;const d=new Date(tx.date);return d.getMonth()===m&&d.getFullYear()===y;}).forEach(tx=>{t[tx.category]=(t[tx.category]||0)+parseFloat(tx.amount);});return t;}
+function calcIncome(){const now=new Date();const m=now.getMonth(),y=now.getFullYear();let t=0;S.transactions.filter(tx=>{if(tx.type!=='income')return false;const d=new Date(tx.date);return d.getMonth()===m&&d.getFullYear()===y;}).forEach(tx=>{t+=parseFloat(tx.amount);});return t||S.income||0;}
+
+function renderDashboard(){
+  const nw=calcNW(),spent=calcSpending(),inc=calcIncome();
+  const ts=Object.values(spent).reduce((a,b)=>a+b,0),sav=inc-ts,rate=inc>0?((sav/inc)*100).toFixed(1):0;
+  document.getElementById('m-networth').textContent=fmt(nw.total);
+  document.getElementById('m-inv').textContent=fmt(nw.inv);
+  document.getElementById('m-reg').textContent=fmt(nw.reg);
+  const sm=document.getElementById('m-savings');sm.textContent=sign(sav)+fmt(sav);sm.className='metric-value '+(sav>=0?'pos':'neg');
+  const sr=document.getElementById('m-saverate');sr.textContent=rate+'%';sr.className='metric-value '+(sav>=0?'pos':'neg');
+  renderAllocChart(nw);renderBudgetPreview(spent);renderNWChart();
+}
+
+function renderAllocChart(nw){
+  const items=[
+    {l:'Stocks/ETFs',v:Object.values(S.holdings).filter(h=>h.type==='stock').reduce((a,h)=>a+toCAD(h.shares*h.currentPrice,h.currency),0),c:'#3266ad'},
+    {l:'Crypto',v:Object.values(S.holdings).filter(h=>h.type==='crypto').reduce((a,h)=>a+toCAD(h.shares*h.currentPrice,h.currency),0),c:'#EF9F27'},
+    {l:'TFSA',v:S.registered.tfsa||0,c:'#1D9E75'},
+    {l:'RRSP',v:S.registered.rrsp||0,c:'#7F77DD'},
+    {l:'FHSA',v:S.registered.fhsa||0,c:'#D4537E'},
+    {l:'Banking',v:S.registered.bank||0,c:'#888780'},
+  ].filter(i=>i.v>0);
+  const data=items.length?items:[{l:'No assets',v:1,c:'#D3D1C7'}];
+  if(charts.alloc)charts.alloc.destroy();
+  charts.alloc=new Chart(document.getElementById('allocChart'),{type:'doughnut',data:{labels:data.map(i=>i.l),datasets:[{data:data.map(i=>i.v),backgroundColor:data.map(i=>i.c),borderWidth:1,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
+  const total=data.reduce((a,i)=>a+i.v,0);
+  document.getElementById('alloc-legend').innerHTML=data.map(i=>`<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${i.c}"></span>${i.l} ${total>0?((i.v/total*100).toFixed(1))+'%':''}</span>`).join('');
+}
+
+function renderBudgetPreview(spent){
+  const el=document.getElementById('budget-preview');
+  if(!Object.values(S.budget).some(v=>v>0)){el.innerHTML='<div class="empty" style="padding:1rem 0">Set budgets in the Budget tab.</div>';return;}
+  el.innerHTML=CATS.slice(0,5).map((c,i)=>{const b=S.budget[c]||0,s=spent[c]||0,pct=b>0?Math.min(s/b*100,100):0,over=b>0&&s>b;return`<div class="budget-row"><div style="flex:1"><div style="font-size:12px;color:var(--text2)">${c}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${over?'var(--red)':CAT_COLORS[i]}"></div></div></div><div style="margin-left:12px;text-align:right;font-size:12px"><div>${fmt(s)}</div><div style="color:var(--text2)">/ ${fmt(b)}</div></div></div>`;}).join('');
+}
+
+function renderNWChart(){
+  const nw=calcNW(),inc=S.income||0;const labels=[],vals=[];const now=new Date();
+  for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);labels.push(d.toLocaleString('en-CA',{month:'short',year:'2-digit'}));vals.push(Math.max(0,Math.round(nw.total-(inc*0.08*i))));}
+  if(charts.nw)charts.nw.destroy();
+  charts.nw=new Chart(document.getElementById('nwChart'),{type:'line',data:{labels,datasets:[{label:'Net worth',data:vals,borderColor:'#3266ad',backgroundColor:'rgba(50,102,173,0.07)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#3266ad'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'rgba(128,128,128,0.08)'}},x:{grid:{display:false}}}}});
+}
+
+/* ---- EXCHANGE AUTO-DETECTION ---- */
+// Known US-listed tickers that might look Canadian
+const KNOWN_US=['AXSM','ULTY','LULU','SPY','QQQ','VTI','VOO','ARKK','TSLA','AAPL','MSFT','NVDA','AMZN','GOOG','META','BRK','JPM','V','MA'];
+// Known Canadian ETFs / stocks (common ones without .TO in WS exports)
+const KNOWN_CA=['XEQT','XDIV','XQQ','VFV','ZSP','HXT','HXS','XIU','ZCN','ZAG','VAB','VCN',
+  'CNQ','DOL','BMO','RY','TD','BNS','CM','ENB','TRP','SU','CVE','NXE','AII',
+  'KEY','WCP','NEO','BTCX.B','ETHX.B'];
+
+function detectExchange(ticker, type){
+  const t=ticker.toUpperCase();
+  if(type==='crypto')return 'CRYPTO';
+  if(t.endsWith('.TO')||t.endsWith('.V'))return t.endsWith('.V')?'TSX-V':'TSX';
+  if(t.endsWith('-CAD')||t.endsWith('-USD'))return 'CRYPTO';
+  if(KNOWN_US.includes(t))return 'NYSE';
+  if(KNOWN_CA.includes(t))return 'TSX';
+  // Heuristics: if ends in X.B (WS crypto ETF format) → TSX
+  if(/X\.B$/.test(t))return 'TSX';
+  // 3-letter all-caps common Canadian pattern
+  if(/^[A-Z]{2,4}$/.test(t)&&!KNOWN_US.includes(t))return 'TSX';
+  return 'TSX'; // default to TSX for WS Canadian accounts
+}
+
+function yahooSymbol(ticker, exchange){
+  const t=ticker.toUpperCase().replace('.TO','').replace('.V','');
+  if(exchange==='TSX')return t+'.TO';
+  if(exchange==='TSX-V')return t+'.V';
+  if(exchange==='CRYPTO')return t.includes('-')?t:t+'-CAD';
+  if(exchange==='MANUAL')return null;
+  return t; // NYSE/NASDAQ — plain
+}
+
+/* ---- SETTINGS ---- */
+function saveApiKeys(){
+  S.apiKeys={fmp:document.getElementById('fmp-key').value.trim()};
+  save();
+  updateApiKeyStatus();
+}
+function updateApiKeyStatus(){
+  const el=document.getElementById('api-key-status');
+  if(!el)return;
+  const key=S.apiKeys?.fmp||'';
+  el.innerHTML=key
+    ?`<span style="color:var(--green)">FMP key saved — ready to refresh prices.</span>`
+    :`<span style="color:var(--amber)">No FMP key set. Visit <a href="https://site.financialmodelingprep.com/developer/docs/pricing" target="_blank" style="color:var(--blue)">financialmodelingprep.com</a> to get a free key.</span>`;
+}
+function renderSettings(){
+  const el=document.getElementById('fmp-key');
+  if(el&&!el.value)el.value=S.apiKeys?.fmp||'';
+  updateApiKeyStatus();
+}
+async function testFmpKey(){
+  const key=S.apiKeys?.fmp||document.getElementById('fmp-key').value.trim();
+  if(!key){updateApiKeyStatus();return;}
+  const el=document.getElementById('api-key-status');
+  el.innerHTML='<span style="color:var(--text2)">Testing key...</span>';
+  try{
+    const r=await fetch(`https://financialmodelingprep.com/api/v3/quote/AAPL?apikey=${key}`);
+    const d=await r.json();
+    if(Array.isArray(d)&&d[0]?.price){
+      el.innerHTML=`<span style="color:var(--green)">Key works. Ready to refresh prices.</span>`;
+    } else {
+      el.innerHTML=`<span style="color:var(--red)">Invalid key: ${d['Error Message']||d['message']||'Unknown error'}</span>`;
+    }
+  }catch(e){el.innerHTML=`<span style="color:var(--red)">Request failed: ${e.message}</span>`;}
+}
+
+/* ---- FMP SYMBOL MAPPING ---- */
+function fmpSymbol(ticker,exchange){
+  const t=ticker.toUpperCase();
+  if(exchange==='MANUAL')return null;
+  if(exchange==='TSX'){
+    const base=t.replace(/\.TO$/,'').replace(/-TO$/,'');
+    return base+'.TO';
+  }
+  if(exchange==='TSX-V'){
+    const base=t.replace(/\.V$/,'').replace(/-V$/,'');
+    return base+'.V';
+  }
+  if(exchange==='CRYPTO'){
+    const base=t.replace(/-CAD$/,'').replace(/-USD$/,'').replace(/USD$/,'');
+    return base+'USD';
+  }
+  return t; // NYSE/NASDAQ — plain
+}
+
+/* ---- PRICE FETCHING — FMP bulk (all holdings in 1 request) ---- */
+async function refreshAllPrices(){
+  const holdings=Object.values(S.holdings);
+  if(!holdings.length)return;
+  const key=S.apiKeys?.fmp||'';
+  const alertEl=document.getElementById('price-alert');
+  const btn=document.getElementById('refresh-btn');
+  if(!key){
+    alertEl.innerHTML=`<div class="alert alert-amber">No FMP API key set. Go to <strong>Settings</strong> (gear icon) to add your free key — takes 1 minute.</div>`;
+    return;
+  }
+  btn.disabled=true;btn.textContent='Refreshing...';
+  alertEl.innerHTML=`<div class="alert alert-blue">Fetching all prices in one request...</div>`;
+  holdings.forEach(h=>{if(!h.exchange)h.exchange=detectExchange(h.ticker,h.type);});
+  holdings.filter(h=>h.priceOverride).forEach(h=>h.currentPrice=h.priceOverride);
+  const toFetch=holdings.filter(h=>h.exchange!=='MANUAL'&&!h.priceOverride);
+  if(!toFetch.length){
+    btn.disabled=false;btn.textContent='↻ Refresh prices';
+    alertEl.innerHTML=`<div class="alert alert-green">All prices are using manual overrides.</div>`;
+    return;
+  }
+  const symToTicker={};
+  const symbols=[];
+  toFetch.forEach(h=>{
+    const s=fmpSymbol(h.ticker,h.exchange);
+    if(s&&!symToTicker[s]){symToTicker[s]=h.ticker;symbols.push(s);}
+  });
+  let updated=0,failed=[];
+  try{
+    const url=`https://financialmodelingprep.com/api/v3/quote/${encodeURIComponent(symbols.join(','))}?apikey=${key}`;
+    const r=await fetch(url);
+    if(!r.ok)throw new Error(`HTTP ${r.status}`);
+    const data=await r.json();
+    if(data?.['Error Message']||data?.message)throw new Error(data['Error Message']||data.message);
+    const results=Array.isArray(data)?data:[data];
+    const priceBySymbol={};
+    results.forEach(q=>{if(q?.symbol&&q?.price!=null)priceBySymbol[q.symbol]=q.price;});
+    toFetch.forEach(h=>{
+      const s=fmpSymbol(h.ticker,h.exchange);
+      const price=priceBySymbol[s];
+      if(price!=null&&price>0){
+        h.currentPrice=price;
+        if(h.exchange==='NYSE')h.currency='USD';
+        else if(h.exchange==='TSX'||h.exchange==='TSX-V')h.currency='CAD';
+        updated++;
+      } else {
+        failed.push(h.ticker);
+      }
+    });
+  }catch(err){
+    btn.disabled=false;btn.textContent='↻ Refresh prices';
+    alertEl.innerHTML=`<div class="alert alert-red">Price fetch failed: ${err.message}. Check your FMP key in Settings.</div>`;
+    return;
+  }
+  S.priceLastUpdated=new Date().toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
+  save();
+  btn.disabled=false;btn.textContent='↻ Refresh prices';
+  document.getElementById('price-last-updated').textContent='Updated '+S.priceLastUpdated;
+  if(failed.length){
+    alertEl.innerHTML=`<div class="alert alert-amber">Updated ${updated} prices. Not found: <strong>${failed.join(', ')}</strong> — click Edit on those rows to verify the exchange or set a price override.</div>`;
+  } else {
+    alertEl.innerHTML=`<div class="alert alert-green">All ${updated} prices updated at ${S.priceLastUpdated}.</div>`;
+    setTimeout(()=>{alertEl.innerHTML='';},5000);
+  }
+  renderInvestments();
+  renderDashboard();
+}
+
+/* ---- EDIT MODAL ---- */
+let editingTicker=null;
+function openEditModal(ticker){
+  editingTicker=ticker;
+  const h=S.holdings[ticker];
+  if(!h)return;
+  if(!h.exchange)h.exchange=detectExchange(ticker);
+  document.getElementById('edit-modal-title').textContent='Edit: '+ticker;
+  document.getElementById('edit-ticker-display').value=ticker;
+  document.getElementById('edit-exchange').value=h.exchange||'TSX';
+  document.getElementById('edit-type').value=h.type||'stock';
+  document.getElementById('edit-account').value=h.account||'TFSA';
+  document.getElementById('edit-price').value=h.priceOverride||'';
+  document.getElementById('edit-currency').value=h.currency||'CAD';
+  updateYahooPreview();
+  const w=document.getElementById('edit-modal-wrap');
+  w.style.display='flex';
+}
+function closeEditModal(){
+  document.getElementById('edit-modal-wrap').style.display='none';
+  editingTicker=null;
+}
+function updateYahooPreview(){
+  const ticker=document.getElementById('edit-ticker-display').value;
+  const exchange=document.getElementById('edit-exchange').value;
+  const ySym=yahooSymbol(ticker,exchange);
+  document.getElementById('edit-yahoo-preview').textContent=
+    ySym?`Yahoo Finance symbol: ${ySym}`:'No live price fetch — manual mode.';
+}
+function saveEditModal(){
+  if(!editingTicker)return;
+  const h=S.holdings[editingTicker];
+  h.exchange=document.getElementById('edit-exchange').value;
+  h.type=document.getElementById('edit-type').value;
+  h.account=document.getElementById('edit-account').value;
+  h.currency=document.getElementById('edit-currency').value;
+  const ov=parseFloat(document.getElementById('edit-price').value);
+  h.priceOverride=ov||null;
+  if(ov)h.currentPrice=ov;
+  save();
+  closeEditModal();
+  renderInvestments();
+}
+
+/* ---- RENDER INVESTMENTS ---- */
+function renderInvestments(){
+  const holdings=Object.values(S.holdings);
+  // Auto-assign exchange on first render if missing
+  holdings.forEach(h=>{if(!h.exchange)h.exchange=detectExchange(h.ticker,h.type);});
+  document.getElementById('no-holdings').style.display=holdings.length?'none':'';
+  if(S.priceLastUpdated)document.getElementById('price-last-updated').textContent='Updated '+S.priceLastUpdated;
+
+  const exchLabel=ex=>({TSX:'TSX',NYSE:'US','TSX-V':'TSX-V',CRYPTO:'Crypto',MANUAL:'Manual'}[ex]||ex);
+  const exchBadge=ex=>{
+    const map={TSX:'badge-blue','TSX-V':'badge-purple',NYSE:'badge-green',CRYPTO:'badge-amber',MANUAL:'badge-gray'};
+    return map[ex]||'badge-gray';
+  };
+
+  document.getElementById('holdings-tbody').innerHTML=holdings.map(h=>{
+    const curr=toCAD(h.shares*h.currentPrice,h.currency);
+    const cost=toCAD(h.shares*h.costBasis,h.currency);
+    const gain=curr-cost;
+    const pct=cost>0?(gain/cost*100).toFixed(1):0;
+    const priceDisplay=h.priceOverride
+      ?`${fmtD(h.currentPrice)} <span style="font-size:10px;color:var(--text3)">(override)</span>`
+      :fmtD(h.currentPrice);
+    return`<tr>
+      <td><strong>${h.ticker}</strong>${h.name?`<br><span style="font-size:11px;color:var(--text3)">${h.name.substring(0,24)}</span>`:''}
+      </td>
+      <td><span class="badge ${exchBadge(h.exchange)}">${exchLabel(h.exchange)}</span></td>
+      <td><span class="badge ${h.type==='crypto'?'badge-amber':'badge-blue'}">${h.type}</span></td>
+      <td><span class="badge badge-gray">${h.account||'—'}</span></td>
+      <td>${h.shares.toFixed(4)}</td>
+      <td>${fmtD(toCAD(h.costBasis,h.currency))}</td>
+      <td>${priceDisplay}</td>
+      <td>${fmtD(curr)}</td>
+      <td style="color:${gain>=0?'var(--green)':'var(--red)'}">${gain>=0?'+':'-'}${fmtD(Math.abs(gain))}</td>
+      <td style="color:${gain>=0?'var(--green)':'var(--red)'}">${pct}%</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" style="margin-right:4px" onclick="openEditModal('${h.ticker}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteHolding('${h.ticker}')">×</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const tv=holdings.reduce((a,h)=>a+toCAD(h.shares*h.currentPrice,h.currency),0);
+  const tc=holdings.reduce((a,h)=>a+toCAD(h.shares*h.costBasis,h.currency),0);
+  const tg=tv-tc;
+  document.getElementById('inv-value').textContent=fmt(tv);
+  document.getElementById('inv-cost').textContent=fmt(tc);
+  const ig=document.getElementById('inv-gain');ig.textContent=sign(tg)+fmt(tg);ig.className='metric-value '+(tg>=0?'pos':'neg');
+  const ir=document.getElementById('inv-return');ir.textContent=(tc>0?(tg/tc*100).toFixed(1):0)+'%';ir.className='metric-value '+(tg>=0?'pos':'neg');
+}
+function deleteHolding(t){delete S.holdings[t];save();renderInvestments();}
+
+function saveIncome(){S.income=parseFloat(document.getElementById('income-input').value)||0;save();renderBudget();}
+function renderBudget(){
+  const inc=S.income||0,spent=calcSpending();
+  if(!document.getElementById('income-input').value)document.getElementById('income-input').value=inc||'';
+  const tb=CATS.reduce((a,c)=>a+(S.budget[c]||0),0),ts=Object.values(spent).reduce((a,b)=>a+b,0),surp=inc-ts;
+  document.getElementById('b-income').textContent=fmt(inc);document.getElementById('b-budgeted').textContent=fmt(tb);document.getElementById('b-spent').textContent=fmt(ts);
+  const bs=document.getElementById('b-surplus');bs.textContent=sign(surp)+fmt(surp);bs.className='metric-value '+(surp>=0?'pos':'neg');
+  document.getElementById('budget-inputs').innerHTML=CATS.map(c=>`<div class="field"><label>${c.split('/')[0].trim().split(' ')[0]}</label><input type="number" placeholder="0" value="${S.budget[c]||''}" oninput="S.budget['${c}']=parseFloat(this.value)||0;save();renderBudget()"></div>`).join('');
+  if(charts.budget)charts.budget.destroy();
+  charts.budget=new Chart(document.getElementById('budgetChart'),{type:'bar',data:{labels:CATS.map(c=>c.split('/')[0].trim().split(' ')[0]),datasets:[{label:'Budgeted',data:CATS.map(c=>S.budget[c]||0),backgroundColor:'rgba(50,102,173,0.25)',borderColor:'#3266ad',borderWidth:1},{label:'Spent',data:CATS.map(c=>spent[c]||0),backgroundColor:CATS.map(c=>{const s=spent[c]||0,b=S.budget[c]||0;return s>b?'rgba(226,75,74,0.75)':'rgba(29,158,117,0.75)';}),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:false,maxRotation:35},grid:{display:false}},y:{ticks:{callback:v=>'$'+v},grid:{color:'rgba(128,128,128,0.07)'}}}}});
+  document.getElementById('budget-breakdown').innerHTML=CATS.map((c,i)=>{const b=S.budget[c]||0,s=spent[c]||0,pct=b>0?Math.min(s/b*100,100):0,over=b>0&&s>b;return`<div class="budget-row"><div style="width:160px;font-size:13px">${c}</div><div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${over?'var(--red)':CAT_COLORS[i]}"></div></div></div><div style="width:70px;text-align:right;font-size:12px">${fmt(s)}<span style="color:var(--text3)"> / ${fmt(b)}</span></div><div style="width:55px;text-align:right;font-size:12px;color:${over?'var(--red)':'var(--green)'}">${over?'-'+fmt(s-b):'+'+fmt(b-s)}</div></div>`;}).join('');
+}
+
+function renderRegistered(){
+  let cum=0;
+  document.getElementById('tfsa-table').innerHTML=Object.entries(TFSA_LIMITS).map(([yr,lim])=>{cum+=lim;return`<tr><td>${yr}</td><td>${fmt(lim)}</td><td>${fmt(cum)}</td></tr>`;}).join('');
+  const lifetime=cum,tfsa=S.registered.tfsa||0,room=Math.max(0,lifetime-tfsa),fhsaRoom=Math.max(0,40000-(S.registered.fhsa||0));
+  document.getElementById('r-tfsa').textContent=fmt(tfsa);document.getElementById('r-tfsaroom').textContent=fmt(room);
+  document.getElementById('r-rrsp').textContent=fmt(S.registered.rrsp||0);document.getElementById('r-rrsproom').textContent=fmt(S.registered.rrspRoom||0);
+  document.getElementById('r-fhsa').textContent=fmt(S.registered.fhsa||0);document.getElementById('r-fhsaroom').textContent=fmt(fhsaRoom);
+  document.getElementById('r-bank').textContent=fmt(S.registered.bank||0);
+  document.getElementById('tfsa-lifetime').textContent=fmt(lifetime);document.getElementById('tfsa-used').textContent=fmt(tfsa);document.getElementById('tfsa-remaining').textContent=fmt(room);
+  document.getElementById('fhsa-summary').textContent=fmt(S.registered.fhsa||0);document.getElementById('fhsa-room-summary').textContent=fmt(fhsaRoom);
+  [['tfsa-bal','tfsa'],['rrsp-bal','rrsp'],['fhsa-bal','fhsa'],['bank-bal','bank'],['rrsp-room','rrspRoom']].forEach(([id,k])=>{const el=document.getElementById(id);if(el&&!el.value)el.value=S.registered[k]||'';});
+}
+function updateRegistered(){
+  [['tfsa-bal','tfsa'],['rrsp-bal','rrsp'],['fhsa-bal','fhsa'],['bank-bal','bank'],['rrsp-room','rrspRoom']].forEach(([id,k])=>S.registered[k]=parseFloat(document.getElementById(id).value)||0);
+  save();renderRegistered();
+}
+
+function renderProjections(){
+  const contrib=parseFloat(document.getElementById('proj-contrib').value)||500;
+  const current=parseFloat(document.getElementById('proj-current').value)||0;
+  const yrs=38,rates=[0.04,0.07,0.10],colors=['#888780','#3266ad','#1D9E75'];
+  const labels=Array.from({length:yrs+1},(_,i)=>2026+i);
+  function proj(r){let b=current,v=[b];for(let i=0;i<yrs;i++){b=b*(1+r)+contrib*12;v.push(Math.round(b));}return v;}
+  document.getElementById('proj-cons').textContent=fmt(proj(0.04)[yrs]);
+  document.getElementById('proj-mod').textContent=fmt(proj(0.07)[yrs]);
+  document.getElementById('proj-agg').textContent=fmt(proj(0.10)[yrs]);
+  if(charts.proj)charts.proj.destroy();
+  charts.proj=new Chart(document.getElementById('projChart'),{type:'line',data:{labels,datasets:rates.map((r,i)=>({label:['Conservative 4%','Moderate 7%','Aggressive 10%'][i],data:proj(r),borderColor:colors[i],backgroundColor:'transparent',tension:0.3,pointRadius:0,borderWidth:2}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'rgba(128,128,128,0.07)'}},x:{ticks:{maxTicksLimit:8},grid:{display:false}}}}});
+  document.getElementById('proj-legend').innerHTML=['Conservative 4%','Moderate 7%','Aggressive 10%'].map((l,i)=>`<span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:2px;background:${colors[i]};display:inline-block"></span>${l}</span>`).join('');
+  const nw=calcNW(),ms=(S.income||0)-Object.values(calcSpending()).reduce((a,b)=>a+b,0);
+  const fl=[],fv=[];for(let m=0;m<=12;m++){const d=new Date(2026,3+m,1);fl.push(d.toLocaleString('en-CA',{month:'short'}));fv.push(Math.round(nw.total+ms*m));}
+  if(charts.forecast)charts.forecast.destroy();
+  charts.forecast=new Chart(document.getElementById('forecastChart'),{type:'line',data:{labels:fl,datasets:[{label:'Net worth',data:fv,borderColor:'#7F77DD',backgroundColor:'rgba(127,119,221,0.07)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#7F77DD'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'rgba(128,128,128,0.07)'}},x:{grid:{display:false}}}}});
+}
+
+function toggleAddFields(){const t=document.getElementById('add-type').value;document.getElementById('inv-fields').style.display=t==='investment'?'':'none';document.getElementById('exp-fields').style.display=t==='expense'?'':'none';document.getElementById('inc-fields').style.display=t==='income'?'':'none';}
+function addTransaction(){
+  const type=document.getElementById('add-type').value,date=document.getElementById('add-date').value||new Date().toISOString().split('T')[0];
+  const ae=document.getElementById('add-alert');
+  function msg(m,ok){ae.innerHTML=`<div class="alert alert-${ok?'green':'red'}">${m}</div>`;setTimeout(()=>{ae.innerHTML='';},3000);}
+  if(type==='investment'){
+    const ticker=document.getElementById('add-ticker').value.trim().toUpperCase();
+    const shares=parseFloat(document.getElementById('add-shares').value);
+    const price=parseFloat(document.getElementById('add-price').value);
+    const currency=document.getElementById('add-currency').value;
+    const assetType=document.getElementById('add-assetclass').value;
+    const action=document.getElementById('add-action').value;
+    const account=document.getElementById('add-account').value;
+    if(!ticker||!shares||!price){msg('Fill in ticker, units, and price.',false);return;}
+    if(action==='buy'){if(S.holdings[ticker]){const h=S.holdings[ticker];const tc=h.shares*h.costBasis+shares*price;const ts=h.shares+shares;h.costBasis=tc/ts;h.shares=parseFloat(ts.toFixed(8));h.currentPrice=price;}else{S.holdings[ticker]={ticker,shares,costBasis:price,currentPrice:price,currency,type:assetType,account};}}
+    else if(S.holdings[ticker]){S.holdings[ticker].shares=parseFloat(Math.max(0,S.holdings[ticker].shares-shares).toFixed(8));if(S.holdings[ticker].shares===0)delete S.holdings[ticker];}
+    S.transactions.push({type:'investment',date,ticker,shares,price,currency,action,assetType,account});
+    msg(`${action==='buy'?'Bought':'Sold'} ${shares} ${ticker}`,true);
+    ['add-ticker','add-shares','add-price'].forEach(id=>document.getElementById(id).value='');
+  } else if(type==='expense'){
+    const amount=parseFloat(document.getElementById('add-amount').value);const category=document.getElementById('add-category').value;const desc=document.getElementById('add-desc').value;
+    if(!amount){msg('Enter an amount.',false);return;}
+    S.transactions.push({type:'expense',date,amount,category,desc});
+    msg(`${fmt(amount)} added to ${category}`,true);
+    ['add-amount','add-desc'].forEach(id=>document.getElementById(id).value='');
+  } else {
+    const amount=parseFloat(document.getElementById('add-inc-amount').value);const source=document.getElementById('add-inc-source').value;
+    if(!amount){msg('Enter an amount.',false);return;}
+    S.transactions.push({type:'income',date,amount,source});S.income=amount;
+    msg(`Income of ${fmt(amount)} saved`,true);
+    ['add-inc-amount','add-inc-source'].forEach(id=>document.getElementById(id).value='');
+  }
+  save();renderTxHistory();
+}
+function renderTxHistory(){
+  const sorted=[...S.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  document.getElementById('no-tx').style.display=sorted.length?'none':'';
+  document.getElementById('tx-tbody').innerHTML=sorted.map((t,si)=>{
+    let details='',amount='',badge='';
+    const realIdx=S.transactions.lastIndexOf(sorted[si]);
+    const imp=t.importSource?`<span class="badge badge-gray" style="font-size:10px">${t.importSource}</span>`:'<span style="color:var(--text3);font-size:11px">manual</span>';
+    if(t.type==='investment'){details=`${t.action==='buy'?'Bought':'Sold'} ${t.shares} ${t.ticker}`;amount=fmt(t.shares*t.price);badge=`<span class="badge ${t.action==='buy'?'badge-green':'badge-red'}">${t.action}</span>`;}
+    else if(t.type==='expense'){details=t.desc||t.category;amount=fmt(t.amount);badge=`<span class="badge badge-amber">expense</span>`;}
+    else{details=t.source||'Income';amount=fmt(t.amount);badge=`<span class="badge badge-blue">income</span>`;}
+    return`<tr><td style="color:var(--text2)">${t.date}</td><td>${badge}</td><td>${imp}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${details}</td><td>${amount}</td><td><button class="btn btn-sm btn-danger" onclick="deleteTx(${realIdx})">×</button></td></tr>`;
+  }).join('');
+}
+function deleteTx(i){S.transactions.splice(i,1);save();renderTxHistory();}
+
+document.getElementById('add-date').value=new Date().toISOString().split('T')[0];
+fetchFX();
+renderDashboard();
+</script>
+</body>
+</html>
